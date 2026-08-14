@@ -1,0 +1,13 @@
+* text=auto
+
+*.mp4 binary
+*.mov binary
+*.avi binary
+*.mkv binary
+*.webm binary
+
+*.pt binary
+*.pth binary
+*.onnx binary
+*.engine binary
+*.safetensors binary

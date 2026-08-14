@@ -13,22 +13,20 @@ This project transforms a regular dashcam video into a real-time 3D map with col
 
 ## How to fork and run
 1. Clone or fork this repository to your local machine.
-2. Ensure you have Python 3.11 installed.
+2. Ensure you have Python 3.12 installed.
 3. Create and activate a virtual environment:
    ```
-   python -m venv .venv
-   .venv\Scripts\activate
+   uv venv --python 3.12
+   source .venv/bin/activate
    ```
-4. Install dependencies (see below for numpy pinning):
+4. Install dependencies:
    ```
-   pip install numpy==1.24.4
-   pip install torch==2.2.0+cpu torchvision==0.17.0+cpu --index-url https://download.pytorch.org/whl/cpu
-   pip install pillow tqdm scipy==1.11.4 transformers==4.40.2 ultralytics supervision ffmpeg-python opencv-python matplotlib --no-deps
+   uv sync
    ```
 5. Place your input video (e.g., `video.mp4`) in the project directory.
 6. Run the main script:
    ```
-   python app.py video.mp4
+   uv run --python 3.12 main.py video.mp4 --model yolov8n.pt
    ```
 7. The output video will be saved in the `output/` directory.
 

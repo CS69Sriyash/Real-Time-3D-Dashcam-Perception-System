@@ -1,0 +1,25 @@
+# ── Core numerics ──────────────────────────────────────────────────────
+numpy>=1.26.0,<1.28.0
+scipy==1.11.4
+
+# ── Deep learning backend (CUDA 12.1 wheels) ───────────────────────────
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.2.0
+torchvision==0.17.0
+
+# ── Depth Anything V2 (via HF transformers pipeline) ────────────────────
+transformers==4.40.2
+timm>=0.9.12
+accelerate>=0.29.0
+
+# ── YOLOv8 detection (latest stable) ─────────────────────────────────────
+ultralytics>=8.3.0
+supervision>=0.22.0
+
+# ── Computer vision / media I/O ──────────────────────────────────────────
+opencv-python>=4.9.0,<4.12.0
+Pillow>=10.2.0
+ffmpeg-python>=0.2.0
+
+# ── Utilities ─────────────────────────────────────────────────────────
+tqdm>=4.66.0
