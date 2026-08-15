@@ -2,16 +2,19 @@
 config.py — Central configuration for the Real-Time 3D Dashcam Perception System.
 
 All tunable parameters live here so nothing is hardcoded in the logic
-modules. Paths are read from environment variables, with local defaults
-where a sensible project-relative path exists.
+modules. Paths are read from environment variables with safe placeholder
+fallbacks — set them for your machine before running.
 """
+
 import os
 
 # ── Paths (override via env vars — never hardcode real paths here) ─────
 YOLO_MODEL_PATH = os.environ.get("YOLO_MODEL_PATH", "[PATH_TO_MODEL]/yolov8n.pt")
 
-# OUTPUT_DIR defaults to a real, relative path so a forgotten env var/flag
-# cannot create a directory literally named "[PATH_TO_OUTPUT_DIR]".
+# OUTPUT_DIR defaults to a real, relative path — not a placeholder — so a
+# forgotten env var/flag can't silently create a directory literally named
+# "[PATH_TO_OUTPUT_DIR]". Override via --output-dir or the env var when
+# you want output written elsewhere.
 OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "output")
 
 # Depth Anything V2 is pulled from the Hugging Face Hub, not a local path.
@@ -38,7 +41,12 @@ PANEL_H = OUTPUT_H
 # ── Distance estimation / collision-risk model constants ───────────────
 FOCAL_LENGTH_PX = 700.0
 REAL_CAR_WIDTH_M = 2.0
+REAL_CAR_LENGTH_M = 4.5
 BEV_MAX_DEPTH_M = 60.0
+
+# How far left/right of the ego vehicle the BEV panel shows (meters).
+# Orthographic (true top-down) scale — not a perspective fan.
+BEV_LATERAL_RANGE_M = 20.0
 
 # Risk thresholds (meters), used by utils.get_risk
 RISK_DANGER_DIST_M = 8.0

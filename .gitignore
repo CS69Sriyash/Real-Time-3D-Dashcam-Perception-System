@@ -6,7 +6,11 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
+.hypothesis/
+.cache/
 build/
 dist/
 *.egg-info/
@@ -27,6 +31,9 @@ output/
 \[PATH_TO_OUTPUT_DIR\]/
 _tmp_raw.mp4
 final_output.mp4
+runs/
+logs/
+*.log
 
 # Local input media and generated media
 *.mp4

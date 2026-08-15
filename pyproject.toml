@@ -1,39 +1,45 @@
 [project]
-name = "real-time-3d-dashcam-perception-system"
+name = "dashcam-perception"
 version = "0.1.0"
-description = "Add your description here"
-authors = [
-    { name = "CS69Sriyash", email = "2201cs69_sriyash@iitp.ac.in" }
-]
+description = "Real-time 3D dashcam perception: YOLOv8 + Depth Anything V2 + orthographic BEV collision-risk visualization."
+readme = "README.md"
 requires-python = ">=3.12,<3.13"
+license = { file = "LICENSE" }
+
 dependencies = [
-    "accelerate>=0.29.0",
-    "ffmpeg-python>=0.2.0",
+    # numpy<1.28 paired with opencv-python<4.12 avoids a real conflict:
+    # opencv-python>=4.12 requires numpy>=2, which would break this pin.
     "numpy>=1.26.0,<1.28.0",
-    "opencv-python>=4.9.0,<4.12.0",
-    "pillow>=10.2.0",
     "scipy==1.11.4",
-    "supervision>=0.22.0",
-    "timm>=0.9.12",
     "torch==2.2.0",
     "torchvision==0.17.0",
-    "tqdm>=4.66.0",
     "transformers==4.40.2",
+    "timm>=0.9.12",
+    "accelerate>=0.29.0",
     "ultralytics>=8.3.0",
+    "supervision>=0.22.0",
+    "opencv-python>=4.9.0,<4.12.0",
+    "pillow>=10.2.0",
+    "ffmpeg-python>=0.2.0",
+    "tqdm>=4.66.0",
 ]
 
-[project.scripts]
-real-time-3d-dashcam-perception-system = "real_time_3d_dashcam_perception_system:main"
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+]
 
-[build-system]
-requires = ["uv_build>=0.12.3,<0.13.0"]
-build-backend = "uv_build"
+# CUDA 12.1 PyTorch wheels by default (matches an available NVIDIA GPU,
+# e.g. RTX 3050). For a CPU-only machine, override the source or install
+# torch/torchvision from the CPU index manually first — see README "Setup".
+[[tool.uv.index]]
+name = "pytorch-cu121"
+url = "https://download.pytorch.org/whl/cu121"
+explicit = true
 
 [tool.uv.sources]
 torch = { index = "pytorch-cu121" }
 torchvision = { index = "pytorch-cu121" }
 
-[[tool.uv.index]]
-name = "pytorch-cu121"
-url = "https://download.pytorch.org/whl/cu121"
-explicit = true
+[tool.pytest.ini_options]
+testpaths = ["tests"]

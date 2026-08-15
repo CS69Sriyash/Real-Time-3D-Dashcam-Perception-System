@@ -99,8 +99,12 @@ def draw_left_panel(frame, tracked, depth_map, tracker: ObjectTracker):
 
 def draw_right_panel(depth_norm, tracked, frame_w, frame_h):
     canvas = np.zeros((PANEL_H, PANEL_W, 3), dtype=np.uint8)
-    d_small = cv2.resize(depth_norm, (PANEL_W, PANEL_H))
-    project_pointcloud(d_small, canvas)
+    # depth_norm is already at (frame_w, frame_h) — the same working
+    # resolution FOCAL_LENGTH_PX is calibrated against. Feed it to
+    # project_pointcloud as-is; resizing it to the canvas size first (as
+    # the old code did) would break the pinhole math, which measures
+    # pixel columns in the source frame's scale, not the canvas's.
+    project_pointcloud(depth_norm, canvas)
 
     horizon = int(PANEL_H * 0.3)
     grad = np.linspace(200, 0, horizon, dtype=np.uint8)
@@ -111,23 +115,23 @@ def draw_right_panel(depth_norm, tracked, frame_w, frame_h):
     draw_grid(canvas, PANEL_W, PANEL_H)
 
     if tracked is not None and len(tracked) > 0 and tracked.tracker_id is not None:
-        d_full = cv2.resize(depth_norm, (frame_w, frame_h))
         for i in range(len(tracked.xyxy)):
             box = tracked.xyxy[i]
             cls = int(tracked.class_id[i]) if tracked.class_id is not None else 2
             name = VEHICLE_CLASSES.get(cls, "vehicle")
-            dist = estimate_distance(d_full, box, frame_w, frame_h)
+            dist = estimate_distance(depth_norm, box, frame_w, frame_h)
             risk = get_risk(dist, box, frame_w)
             color = RISK_COLORS[risk]
-            cx_norm = ((box[0] + box[2]) / 2) / frame_w
+            cx_px = (box[0] + box[2]) / 2
             draw_bev_box(
                 canvas,
-                cx_norm,
+                cx_px,
                 dist,
                 f"{name} {dist:.0f}m {risk}",
                 color,
                 PANEL_W,
                 PANEL_H,
+                frame_w,
             )
 
     cv2.putText(
