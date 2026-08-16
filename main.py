@@ -13,8 +13,11 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+from loguru import logger
+
 from config import DEFAULT_CONF_THRESHOLD, YOLO_MODEL_PATH
 from inference import process_video
+from logging_config import configure_logging
 
 
 def parse_args() -> argparse.Namespace:
@@ -49,18 +52,21 @@ def parse_args() -> argparse.Namespace:
         help="Directory for output video (defaults to config.OUTPUT_DIR)",
     )
     p.add_argument("--show", action="store_true", help="Live preview window")
+    p.add_argument("--verbose", action="store_true", help="Enable DEBUG-level logging")
     return p.parse_args()
 
 
 if __name__ == "__main__":
     args = parse_args()
+    configure_logging("DEBUG" if args.verbose else None)
+
     if not os.path.isfile(args.input):
-        print(f"[ERROR] Input file not found: {args.input}")
+        logger.error(f"Input file not found: {args.input}")
         sys.exit(1)
     if not os.path.isfile(args.model):
-        print(f"[ERROR] YOLO model checkpoint not found: {args.model}")
-        print(
-            "        Set --model or the YOLO_MODEL_PATH env var to a real yolov8n.pt path."
+        logger.error(f"YOLO model checkpoint not found: {args.model}")
+        logger.error(
+            "Set --model or the YOLO_MODEL_PATH env var to a real yolov8n.pt path."
         )
         sys.exit(1)
     process_video(args.input, args, model_path=args.model)

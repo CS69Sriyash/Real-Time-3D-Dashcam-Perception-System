@@ -12,44 +12,58 @@ Checks, in order:
 Usage:
     python smoke_test.py --model [PATH_TO_MODEL]/yolov8n.pt
 """
+
 import argparse
 import os
 import sys
 
+from loguru import logger
+
+from logging_config import configure_logging
+
 
 def check_imports() -> bool:
-    print("[1/3] Checking imports ...")
-    required = ["cv2", "numpy", "torch", "torchvision", "ultralytics", "supervision", "transformers"]
+    logger.info("[1/3] Checking imports ...")
+    required = [
+        "cv2",
+        "numpy",
+        "torch",
+        "torchvision",
+        "ultralytics",
+        "supervision",
+        "transformers",
+    ]
     missing = []
     for mod in required:
         try:
             __import__(mod)
+            logger.debug(f"  import OK: {mod}")
         except ImportError:
             missing.append(mod)
     if missing:
-        print(f"  [FAIL] Missing packages: {', '.join(missing)}")
-        print("         Run: pip install -r requirements.txt")
+        logger.error(f"Missing packages: {', '.join(missing)}")
+        logger.error("Run: pip install -r requirements.txt")
         return False
-    print("  [OK] All required packages import cleanly.")
+    logger.success("All required packages import cleanly.")
     return True
 
 
 def check_device() -> str:
-    print("[2/3] Checking device ...")
+    logger.info("[2/3] Checking device ...")
     import torch
 
     if torch.cuda.is_available():
-        print(f"  [OK] CUDA available: {torch.cuda.get_device_name(0)}")
+        logger.success(f"CUDA available: {torch.cuda.get_device_name(0)}")
         return "cuda"
-    print("  [OK] CUDA not available — falling back to CPU.")
+    logger.info("CUDA not available — falling back to CPU.")
     return "cpu"
 
 
 def check_model_load(model_path: str, device: str) -> bool:
-    print(f"[3/3] Loading YOLO checkpoint from {model_path} ...")
+    logger.info(f"[3/3] Loading YOLO checkpoint from {model_path} ...")
     if not os.path.isfile(model_path):
-        print(f"  [FAIL] Checkpoint not found at: {model_path}")
-        print("         Pass --model with a real path to your yolov8n.pt file.")
+        logger.error(f"Checkpoint not found at: {model_path}")
+        logger.error("Pass --model with a real path to your yolov8n.pt file.")
         return False
 
     import numpy as np
@@ -60,19 +74,28 @@ def check_model_load(model_path: str, device: str) -> bool:
         model.to(device)
         dummy = np.zeros((640, 640, 3), dtype=np.uint8)
         results = model(dummy, verbose=False, device=device)
-        print(f"  [OK] Model loaded and ran a forward pass "
-              f"({len(results[0].boxes)} detections on blank frame, as expected).")
+        logger.success(
+            f"Model loaded and ran a forward pass "
+            f"({len(results[0].boxes)} detections on blank frame, as expected)."
+        )
         return True
     except Exception as e:
-        print(f"  [FAIL] Model load/inference failed: {e}")
+        logger.error(f"Model load/inference failed: {e}")
         return False
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Environment + model smoke test")
-    p.add_argument("--model", type=str, default="[PATH_TO_MODEL]/yolov8n.pt",
-                   help="Path to YOLOv8 .pt checkpoint")
+    p.add_argument(
+        "--model",
+        type=str,
+        default="[PATH_TO_MODEL]/yolov8n.pt",
+        help="Path to YOLOv8 .pt checkpoint",
+    )
+    p.add_argument("--verbose", action="store_true", help="Enable DEBUG-level logging")
     args = p.parse_args()
+
+    configure_logging("DEBUG" if args.verbose else None)
 
     ok = check_imports()
     if not ok:
@@ -84,7 +107,7 @@ def main() -> None:
     if not ok:
         sys.exit(1)
 
-    print("\n[OK] Smoke test passed — environment is ready for full inference.")
+    logger.success("Smoke test passed — environment is ready for full inference.")
 
 
 if __name__ == "__main__":

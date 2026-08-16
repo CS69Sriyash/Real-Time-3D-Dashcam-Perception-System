@@ -1,0 +1,29 @@
+# Version control
+.git
+.gitignore
+
+# Model checkpoint — mount at runtime (-v .../yolov8n.pt:/data/yolov8n.pt)
+# instead of baking it in, so swapping model variants doesn't need a
+# rebuild and the build context/image stays smaller.
+*.pt
+*.pth
+
+# Local envs / caches — never needed inside the image, uv builds its own
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.uv-cache/
+
+# Test and media assets — not needed at runtime
+tests/
+assets/
+
+# Output from local runs
+output/
+*.mp4
+
+# Editor/OS cruft
+.vscode/
+.idea/
+.DS_Store

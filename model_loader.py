@@ -9,6 +9,7 @@ import cv2
 import numpy as np
 import supervision as sv
 import torch
+from loguru import logger
 from ultralytics import YOLO
 
 from config import DEPTH_MODEL_NAME, DEPTH_SMOOTHING_ALPHA, YOLO_MODEL_PATH
@@ -16,8 +17,11 @@ from config import DEPTH_MODEL_NAME, DEPTH_SMOOTHING_ALPHA, YOLO_MODEL_PATH
 
 def select_device(requested: str = "cpu") -> tuple[str, str]:
     """Resolve the requested device against actual hardware availability."""
+    logger.debug(f"Requested device: {requested!r}")
     if requested == "cuda" and torch.cuda.is_available():
         return "cuda", f"CUDA - {torch.cuda.get_device_name(0)}"
+    if requested == "cuda":
+        logger.debug("CUDA requested but not available — falling back to CPU")
     return "cpu", "CPU"
 
 
@@ -27,10 +31,10 @@ def load_yolo(model_path: str = YOLO_MODEL_PATH, device: str = "cpu") -> YOLO:
     `model_path` should point at a local .pt checkpoint (e.g. yolov8n.pt).
     Replace the config placeholder with a real path before running.
     """
-    print(f"[YOLO] Loading model from {model_path} ...")
+    logger.info(f"Loading YOLO model from {model_path} ...")
     model = YOLO(model_path)
     model.to(device)
-    print("[YOLO] Model ready ✓")
+    logger.success("YOLO model ready")
     return model
 
 
@@ -50,14 +54,15 @@ class DepthEstimator:
         self._pipe = None
 
     def load(self) -> None:
-        print("[DEPTH] Loading Depth Anything V2 ...")
+        logger.info(f"Loading depth model {self.model_name} ...")
         from transformers import pipeline as hf_pipeline
 
         hf_device = 0 if (self.device == "cuda" and torch.cuda.is_available()) else -1
+        logger.debug(f"HF pipeline device index: {hf_device} (-1 = CPU)")
         self._pipe = hf_pipeline(
             task="depth-estimation", model=self.model_name, device=hf_device
         )
-        print("[DEPTH] Model ready ✓")
+        logger.success("Depth model ready")
 
     def estimate(self, bgr: np.ndarray) -> np.ndarray:
         if self._pipe is None:

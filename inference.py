@@ -11,6 +11,7 @@ import time
 import cv2
 import numpy as np
 import supervision as sv
+from loguru import logger
 from tqdm import tqdm
 
 from config import (
@@ -163,13 +164,20 @@ def _ffmpeg_encoder() -> tuple[str, list[str]] | None:
 
     encoders = result.stdout
     if "libx264" in encoders:
+        logger.debug("ffmpeg encoder probe: libx264 available")
         return "libx264", ["-c:v", "libx264", "-preset", "fast", "-crf", "23"]
     if "libopenh264" in encoders:
+        logger.debug("ffmpeg encoder probe: libx264 unavailable, using libopenh264")
         return "libopenh264", ["-c:v", "libopenh264", "-b:v", "8M"]
     if "h264_nvenc" in encoders:
+        logger.debug("ffmpeg encoder probe: using h264_nvenc")
         return "h264_nvenc", ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "23"]
     if "mpeg4" in encoders:
+        logger.debug(
+            "ffmpeg encoder probe: no H.264 encoder found, falling back to mpeg4"
+        )
         return "mpeg4", ["-c:v", "mpeg4", "-q:v", "4"]
+    logger.debug("ffmpeg encoder probe: no usable encoder found")
     return None
 
 
@@ -180,7 +188,7 @@ def _encode_with_ffmpeg(tmp_out: str, final_out: str) -> bool:
         return False
 
     encoder_name, encoder_args = encoder
-    print(f"[FFMPEG] Compressing with {encoder_name} -> {final_out} ...")
+    logger.info(f"Compressing with {encoder_name} -> {final_out} ...")
     cmd = [
         "ffmpeg",
         "-y",
@@ -203,23 +211,25 @@ def _encode_with_ffmpeg(tmp_out: str, final_out: str) -> bool:
         # version/config banner — tail-slice, not head-slice, or you just
         # see boilerplate instead of the actual error.
         stderr = e.stderr.decode(errors="ignore")
-        print(f"[WARN] FFmpeg ({encoder_name}) failed:\n{stderr[-1500:]}")
-        print(
-            f"[WARN] Raw frames kept at: {tmp_out} — rerun the command above manually to debug."
+        logger.error(f"FFmpeg ({encoder_name}) failed:\n{stderr[-1500:]}")
+        logger.warning(
+            f"Raw frames kept at: {tmp_out} — rerun the command above manually to debug."
         )
         return False
 
 
 def process_video(input_path: str, args, model_path: str = None) -> None:
-    print(BANNER)
+    logger.opt(raw=True).info(
+        BANNER + "\n"
+    )  # raw: decorative ASCII banner, no timestamp/level noise
 
     device, dev_label = select_device(args.device)
-    print(f"[INFO] Device: {dev_label}")
+    logger.info(f"Device: {dev_label}")
 
     output_dir = args.output_dir or OUTPUT_DIR
     if output_dir.startswith("[") and output_dir.endswith("]"):
-        print(f"[ERROR] OUTPUT_DIR is still a placeholder: {output_dir!r}")
-        print("        Set --output-dir or the OUTPUT_DIR env var to a real path.")
+        logger.error(f"OUTPUT_DIR is still a placeholder: {output_dir!r}")
+        logger.error("Set --output-dir or the OUTPUT_DIR env var to a real path.")
         sys.exit(1)
     os.makedirs(output_dir, exist_ok=True)
     tmp_out = os.path.join(output_dir, "_tmp_raw.mp4")
@@ -227,17 +237,22 @@ def process_video(input_path: str, args, model_path: str = None) -> None:
 
     cap = cv2.VideoCapture(input_path)
     if not cap.isOpened():
-        print(f"[ERROR] Cannot open: {input_path}")
+        logger.error(f"Cannot open: {input_path}")
         sys.exit(1)
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     src_fps = cap.get(cv2.CAP_PROP_FPS) or 25.0
     src_w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     src_h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    print(
-        f"[INFO] Input:  {input_path}  {src_w}x{src_h}  {src_fps:.1f}fps  {total_frames} frames"
+    logger.info(
+        f"Input:  {input_path}  {src_w}x{src_h}  {src_fps:.1f}fps  {total_frames} frames"
     )
-    print(f"[INFO] Output: {final_out}")
+    logger.info(f"Output: {final_out}")
+
+    work_w_preview = min(src_w, MAX_WORK_WIDTH)
+    logger.debug(
+        f"Working resolution: {work_w_preview}px wide (source downscaled for inference speed)"
+    )
 
     yolo = load_yolo(model_path or args.model, device=device)
     depth_est = DepthEstimator(device)
@@ -291,7 +306,7 @@ def process_video(input_path: str, args, model_path: str = None) -> None:
             preview = cv2.resize(composed, (1280, int(PANEL_H * 1280 / OUTPUT_W)))
             cv2.imshow("3D Dashcam Perception", preview)
             if cv2.waitKey(1) & 0xFF == ord("q"):
-                print("[INFO] User quit.")
+                logger.info("User quit.")
                 break
 
         pbar.update(1)
@@ -303,19 +318,21 @@ def process_video(input_path: str, args, model_path: str = None) -> None:
         cv2.destroyAllWindows()
 
     total_elapsed = time.time() - t0
-    print(
-        f"\n[INFO] Done: {frame_no} frames in {total_elapsed:.1f}s "
+    logger.info(
+        f"Done: {frame_no} frames in {total_elapsed:.1f}s "
         f"({frame_no / max(total_elapsed, 1e-6):.1f} fps avg)"
     )
 
     if _encode_with_ffmpeg(tmp_out, final_out):
         size_mb = os.path.getsize(final_out) / (1024**2)
-        print(f"\n[OK] OUTPUT SAVED: {final_out}  ({size_mb:.1f} MB)")
+        logger.success(f"OUTPUT SAVED: {final_out}  ({size_mb:.1f} MB)")
         return
 
     import shutil
 
     shutil.move(tmp_out, final_out)
     size_mb = os.path.getsize(final_out) / (1024**2)
-    print(f"\n[OK] OUTPUT SAVED (uncompressed): {final_out}  ({size_mb:.1f} MB)")
-    print("[INFO] Install ffmpeg for smaller files: https://ffmpeg.org/download.html")
+    logger.success(f"OUTPUT SAVED (uncompressed): {final_out}  ({size_mb:.1f} MB)")
+    logger.info(
+        "Install an FFmpeg build with libx264/libopenh264 for smaller files: https://ffmpeg.org/download.html"
+    )

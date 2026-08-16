@@ -13,10 +13,6 @@ a collision-risk overlay plus a bird's-eye-view (BEV) panel.
 > specifics, including a correctness bug in the depth math that was found and
 > fixed during that rework. The original `LICENSE` is preserved unchanged.
 
-<p align="center">
-  <img src="assets/after_depth_fix.png" width="900" alt="Dashcam feed with lane overlay and BEV depth panel">
-</p>
-
 ---
 
 ## What it does
@@ -44,8 +40,7 @@ Real-Time-3D-Dashcam-Perception-System/
 ├── main.py            # CLI entry point
 ├── smoke_test.py       # environment + model-load check, no video required
 ├── tests/              # pytest unit tests for utils.py
-├── yolov8n.pt          # YOLOv8 nano checkpoint
-└── assets/             # README screenshots
+└── yolov8n.pt          # YOLOv8 nano checkpoint
 ```
 
 ## Setup
@@ -99,6 +94,25 @@ python main.py path/to/video.mp4 --model yolov8n.pt
 
 Output is written to `./output/final_output.mp4` by default.
 
+## Docker
+
+Build the image:
+
+```bash
+docker build -t dashcam-perception .
+```
+
+Run with the current project directory mounted at `/data`:
+
+```bash
+docker run --rm --gpus all \
+  -v "$(pwd):/data" \
+  dashcam-perception \
+  /data/video.mp4 --model /data/yolov8n.pt --output-dir /data/output
+```
+
+This assumes `video.mp4` and `yolov8n.pt` are in the project root.
+
 | Flag | Default | Purpose |
 |---|---|---|
 | `--model` | `$YOLO_MODEL_PATH` or none | Path to a YOLOv8 `.pt` checkpoint |
@@ -129,11 +143,6 @@ packages at runtime via `pip`/`apt`/`brew` calls. Since forking:
   meant a close, genuinely dangerous vehicle could be computed as ~75m away
   and flagged `SAFE`. Confirmed by comparing BEV output before and after:
 
-  <p align="center">
-    <img src="assets/before_depth_fix.png" width="430" alt="BEV panel before fix — no near/far structure">
-    <img src="assets/after_depth_fix.png" width="430" alt="BEV panel after fix — road correctly near, terrain correctly far">
-  </p>
-
   Before (left): the point cloud is one undifferentiated fan with no depth
   contrast. After (right): distant terrain clusters near the vanishing point
   (top), the road surface correctly spreads toward the bottom (near the
@@ -158,10 +167,6 @@ packages at runtime via `pip`/`apt`/`brew` calls. Since forking:
   scale, no vanishing point) top-down mapping — labeled range rings, lane-width
   reference lines, and vehicle markers sized to their real-world footprint
   regardless of distance:
-
-  <p align="center">
-    <img src="assets/pinhole_bev.png" width="900" alt="BEV panel with orthographic range rings and pinhole-projected point cloud">
-  </p>
 
   The wedge shape is now expected, not a bug: a single forward-facing camera's
   field of view genuinely covers more real-world width at greater distance, so

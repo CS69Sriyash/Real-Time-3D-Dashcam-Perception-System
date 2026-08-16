@@ -1,8 +1,14 @@
 # ── Core numerics ──────────────────────────────────────────────────────
+# Project targets Python 3.12 only (see pyproject.toml requires-python),
+# so no need for a version-conditional numpy pin.
 numpy>=1.26.0,<1.28.0
 scipy==1.11.4
 
-# ── Deep learning backend (CUDA 12.1 wheels) ───────────────────────────
+# ── Deep learning backend ───────────────────────────────────────────────
+# Default here is CUDA 12.1 wheels (matches an available NVIDIA GPU, e.g.
+# RTX 3050). For a CPU-only machine, install instead with:
+#   pip install torch==2.2.0 torchvision==0.17.0 \
+#     --index-url https://download.pytorch.org/whl/cpu
 --extra-index-url https://download.pytorch.org/whl/cu121
 torch==2.2.0
 torchvision==0.17.0
@@ -14,12 +20,20 @@ accelerate>=0.29.0
 
 # ── YOLOv8 detection (latest stable) ─────────────────────────────────────
 ultralytics>=8.3.0
-supervision>=0.22.0
+# supervision.ByteTrack is deprecated as of 0.28.0 and scheduled for full
+# REMOVAL in 0.31.0 (moved to a separate `trackers` package, different
+# API). Capped here so this doesn't silently break; migrating
+# model_loader.py's ObjectTracker to `trackers.ByteTrackTracker` is the
+# real long-term fix, tracked as a known follow-up, not done here.
+supervision>=0.22.0,<0.31.0
 
 # ── Computer vision / media I/O ──────────────────────────────────────────
+# Cap below 4.12: opencv-python 4.12+ requires numpy>=2, which conflicts
+# with the numpy<1.28 pin above.
 opencv-python>=4.9.0,<4.12.0
 Pillow>=10.2.0
 ffmpeg-python>=0.2.0
 
 # ── Utilities ─────────────────────────────────────────────────────────
 tqdm>=4.66.0
+loguru>=0.7.2

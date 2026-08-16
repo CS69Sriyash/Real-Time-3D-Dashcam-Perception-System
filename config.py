@@ -17,6 +17,11 @@ YOLO_MODEL_PATH = os.environ.get("YOLO_MODEL_PATH", "[PATH_TO_MODEL]/yolov8n.pt"
 # you want output written elsewhere.
 OUTPUT_DIR = os.environ.get("OUTPUT_DIR", "output")
 
+# Loguru sink level — INFO by default, DEBUG for verbose diagnostics
+# (device resolution, working resolution, encoder probing). Overridden by
+# --verbose on main.py/smoke_test.py without needing the env var.
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
+
 # Depth Anything V2 is pulled from the Hugging Face Hub, not a local path.
 DEPTH_MODEL_NAME = "depth-anything/Depth-Anything-V2-Small-hf"
 
